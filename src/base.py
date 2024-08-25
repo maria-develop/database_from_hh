@@ -1,6 +1,6 @@
-from typing import Any
-
 import psycopg2
+
+from src.hh_api import EmployerVacancyManager
 
 
 def create_tables(name_base: str, params: dict) -> None:
@@ -41,11 +41,16 @@ def create_tables(name_base: str, params: dict) -> None:
     conn.commit()
     conn.close()
 
-def insert_company_data(data: list[dict[str, Any]], name_dase: str, params: dict) -> None:
+
+def insert_company_data(data: EmployerVacancyManager, name_base: str, params: dict) -> None:
     """Сохранение данных о компаниях и их вакансиях в базу данных "hh_base"."""
-    conn = psycopg2.connect(dbname=name_dase, **params)
+    conn = psycopg2.connect(dbname=name_base, **params)
+
     with conn.cursor() as cur:
-        for company in data:
+        # Получаем данные о компаниях
+        companies_data = data.get_vacancies_and_employer()
+
+        for company in companies_data:
             company_id = company['Работодатель']['id']
             company_name = company['Работодатель']['employer_name']
             company_url = company['Работодатель']['alternate_url']
@@ -53,21 +58,23 @@ def insert_company_data(data: list[dict[str, Any]], name_dase: str, params: dict
             cur.execute("""
                 INSERT INTO companies (company_id, company_name, company_url, open_vacancies)
                 VALUES (%s, %s, %s, %s)
-                RETURNING company_id; 
+                RETURNING company_id;
             """, (company_id, company_name, company_url, open_vacancies))
 
             company_id = cur.fetchone()[0]
+
             vacancies_data = company['Вакансии']
+
             for vacancy in vacancies_data:
                 vacancy_name = vacancy['vacancy_name']
                 vacancy_url = vacancy['vacancy_url']
-                salary = f'{vacancy['salary_from']} - {vacancy['salary_to']} {vacancy['currency']}'
+                # salary = f'{vacancy['salary_from']} - {vacancy['salary_to']} {vacancy['currency']}'
                 salary_from = vacancy['salary_from']
                 salary_to = vacancy['salary_to']
                 cur.execute("""
                             INSERT INTO vacancies (company_id, title, vacancy_url, salary_from, salary_to)
                             VALUES (%s, %s, %s, %s, %s)
-                            RETURNING company_id; 
+                            RETURNING company_id;
                         """, (company_id, vacancy_name, vacancy_url, salary_from, salary_to))
 
     conn.commit()
