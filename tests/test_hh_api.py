@@ -19,7 +19,8 @@ def test_get_vacancies_by_employer(mock_get, employer_vacancy_manager):
     """Тест для метода get_vacancies_by_employer с использованием mock."""
     mock_get.return_value.json.return_value = {
         "items": [
-            {"id": "1", "name": "Test Vacancy", "alternate_url": "http://test.com/vacancy", "salary": {"from": 50000, "to": 100000}}
+            {"id": "1", "name": "Test Vacancy", "alternate_url": "http://test.com/vacancy",
+             "salary": {"from": 50000, "to": 100000}}
         ]
     }
     vacancies = employer_vacancy_manager.get_vacancies_by_employer("1")
